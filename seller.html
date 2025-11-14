@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seller Dashboard - AuctionSphere</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🌊 AuctionSphere</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="auction.html">Auctions</a></li>
+                <li><a href="seller.html" class="active">Dashboard</a></li>
+                <li><a href="#" id="logoutBtn">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h2>Seller Dashboard</h2>
+                <div class="user-info">
+                    <p>Welcome, <strong id="sellerName"></strong></p>
+                    <p>UPI ID: <strong id="sellerUPI"></strong></p>
+                </div>
+            </div>
+
+            <!-- Product Upload Form -->
+            <div class="form-container" style="max-width: 100%;">
+                <h2>Upload Product for Auction</h2>
+                <form id="productForm">
+                    <div class="form-group">
+                        <label for="productName">Product Name</label>
+                        <input type="text" id="productName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="productDescription">Description</label>
+                        <textarea id="productDescription" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startingBid">Starting Bid (₹)</label>
+                        <input type="number" id="startingBid" min="1" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="productImage">Product Image</label>
+                        <input type="file" id="productImage" accept="image/*">
+                        <small style="color: #6b7280;">Optional: Upload an image of your product</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="auctionDuration">Auction Duration</label>
+                        <select id="auctionDuration" required>
+                            <option value="0.0166">1 Minute (Demo)</option>
+                            <option value="0.0833">5 Minutes (Demo)</option>
+                            <option value="0.25">15 Minutes (Demo)</option>
+                            <option value="1">1 Hour</option>
+                            <option value="6">6 Hours</option>
+                            <option value="24">24 Hours</option>
+                            <option value="48">48 Hours</option>
+                            <option value="72">72 Hours</option>
+                            <option value="168">7 Days</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Upload Product
+                    </button>
+                </form>
+            </div>
+
+            <!-- My Products -->
+            <div class="mt-2">
+                <h2>My Products</h2>
+                
+                <!-- Tabs -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); flex-wrap: wrap;">
+                    <button class="btn btn-small" id="pendingTab" onclick="showTab('pending')" style="border-bottom: 3px solid var(--primary-color);">
+                        Pending Approval
+                    </button>
+                    <button class="btn btn-small" id="approvedTab" onclick="showTab('approved')">
+                        Active Auctions
+                    </button>
+                    <button class="btn btn-small" id="completedTab" onclick="showTab('completed')">
+                        Completed
+                    </button>
+                    <button class="btn btn-small" id="rejectedTab" onclick="showTab('rejected')">
+                        Rejected
+                    </button>
+                </div>
+
+                <!-- Pending Products -->
+                <div id="pendingProducts" class="products-grid"></div>
+                
+                <!-- Approved Products -->
+                <div id="approvedProducts" class="products-grid" style="display: none;"></div>
+                
+                <!-- Completed Products -->
+                <div id="completedProducts" class="products-grid" style="display: none;"></div>
+                
+                <!-- Rejected Products -->
+                <div id="rejectedProducts" class="products-grid" style="display: none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 AuctionSphere - Windsurf Auction System. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Check authentication
+        if (!checkAuth('seller')) {
+            throw new Error('Unauthorized');
+        }
+
+        const currentUser = getCurrentUser();
+        document.getElementById('sellerName').textContent = currentUser.name;
+        document.getElementById('sellerUPI').textContent = currentUser.upiId || 'Not provided';
+
+        // Load and display products
+        function loadProducts() {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const myProducts = products.filter(p => p.sellerId === currentUser.id);
+
+            displayProducts(myProducts.filter(p => p.status === 'pending'), 'pendingProducts');
+            displayProducts(myProducts.filter(p => p.status === 'approved'), 'approvedProducts');
+            displayProducts(myProducts.filter(p => p.status === 'completed'), 'completedProducts');
+            displayProducts(myProducts.filter(p => p.status === 'rejected'), 'rejectedProducts');
+        }
+
+        // Display products in a container
+        function displayProducts(products, containerId) {
+            const container = document.getElementById(containerId);
+            
+            if (products.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 2rem;">No products found</p>';
+                return;
+            }
+
+            container.innerHTML = products.map(product => `
+                <div class="product-card fade-in">
+                    <div class="product-image">
+                        ${product.image ? `<img src="${product.image}" alt="${product.name}">` : '📦'}
+                    </div>
+                    <div class="product-details">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <div class="product-price">${formatCurrency(product.currentBid || product.startingBid)}</div>
+                        <span class="product-status status-${product.status}">${product.status.toUpperCase()}</span>
+                        ${product.status === 'completed' && product.winnerName ? 
+                            `<p style="color: var(--success-color); font-size: 0.9rem; margin-top: 0.5rem;">
+                                <strong>Winner:</strong> ${product.winnerName}<br>
+                                <strong>Final Bid:</strong> ${formatCurrency(product.finalBid || product.currentBid)}
+                            </p>` : ''}
+                        ${product.status === 'rejected' && product.rejectionReason ? 
+                            `<p style="color: var(--danger-color); font-size: 0.9rem; margin-top: 0.5rem;">
+                                Reason: ${product.rejectionReason}
+                            </p>` : ''}
+                        <p style="font-size: 0.9rem; color: var(--text-light); margin-top: 0.5rem;">
+                            Uploaded: ${formatDateTime(product.createdAt)}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            document.getElementById('pendingProducts').style.display = 'none';
+            document.getElementById('approvedProducts').style.display = 'none';
+            document.getElementById('completedProducts').style.display = 'none';
+            document.getElementById('rejectedProducts').style.display = 'none';
+
+            document.getElementById('pendingTab').style.borderBottom = 'none';
+            document.getElementById('approvedTab').style.borderBottom = 'none';
+            document.getElementById('completedTab').style.borderBottom = 'none';
+            document.getElementById('rejectedTab').style.borderBottom = 'none';
+
+            if (tab === 'pending') {
+                document.getElementById('pendingProducts').style.display = 'grid';
+                document.getElementById('pendingTab').style.borderBottom = '3px solid var(--primary-color)';
+            } else if (tab === 'approved') {
+                document.getElementById('approvedProducts').style.display = 'grid';
+                document.getElementById('approvedTab').style.borderBottom = '3px solid var(--primary-color)';
+            } else if (tab === 'completed') {
+                document.getElementById('completedProducts').style.display = 'grid';
+                document.getElementById('completedTab').style.borderBottom = '3px solid var(--primary-color)';
+            } else {
+                document.getElementById('rejectedProducts').style.display = 'grid';
+                document.getElementById('rejectedTab').style.borderBottom = '3px solid var(--primary-color)';
+            }
+        }
+
+        // Product form submission
+        document.getElementById('productForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('productName').value.trim();
+            const description = document.getElementById('productDescription').value.trim();
+            const startingBid = parseFloat(document.getElementById('startingBid').value);
+            const imageFile = document.getElementById('productImage').files[0];
+            const duration = parseInt(document.getElementById('auctionDuration').value);
+
+            let imageBase64 = null;
+            if (imageFile) {
+                imageBase64 = await fileToBase64(imageFile);
+            }
+
+            const newProduct = {
+                id: generateId(),
+                name,
+                description,
+                startingBid,
+                currentBid: startingBid,
+                image: imageBase64,
+                sellerId: currentUser.id,
+                sellerName: currentUser.name,
+                sellerUPI: currentUser.upiId,
+                status: 'pending',
+                createdAt: Date.now(),
+                auctionDuration: duration,
+                auctionEndTime: null
+            };
+
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            products.push(newProduct);
+            localStorage.setItem('products', JSON.stringify(products));
+
+            showAlert('Product uploaded successfully! Waiting for admin approval.', 'success');
+            
+            // Reset form
+            document.getElementById('productForm').reset();
+            
+            // Reload products
+            loadProducts();
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').onclick = logout;
+
+        // Initial load
+        loadProducts();
+        updateNavigation();
+    </script>
+</body>
+</html>

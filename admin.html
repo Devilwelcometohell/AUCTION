@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AuctionSphere</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🌊 AuctionSphere</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="auction.html">Auctions</a></li>
+                <li><a href="admin.html" class="active">Admin Dashboard</a></li>
+                <li><a href="#" id="logoutBtn">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h2>Admin Dashboard</h2>
+                <div class="user-info">
+                    <p>Welcome, <strong id="adminName"></strong></p>
+                    <p>Role: Administrator</p>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="feature-grid" style="margin-bottom: 2rem;">
+                <div class="feature-card">
+                    <div class="feature-icon">⏳</div>
+                    <h4 id="pendingCount">0</h4>
+                    <p>Pending Approvals</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✅</div>
+                    <h4 id="approvedCount">0</h4>
+                    <p>Approved Products</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h4 id="userCount">0</h4>
+                    <p>Total Users</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h4 id="totalBids">0</h4>
+                    <p>Total Bids</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-color);">
+                <button class="btn btn-small" id="pendingTab" onclick="showTab('pending')" style="border-bottom: 3px solid var(--primary-color);">
+                    Pending Approvals
+                </button>
+                <button class="btn btn-small" id="approvedTab" onclick="showTab('approved')">
+                    Approved Products
+                </button>
+                <button class="btn btn-small" id="allTab" onclick="showTab('all')">
+                    All Products
+                </button>
+            </div>
+
+            <!-- Pending Products -->
+            <div id="pendingProducts" class="products-grid"></div>
+            
+            <!-- Approved Products -->
+            <div id="approvedProducts" class="products-grid" style="display: none;"></div>
+            
+            <!-- All Products -->
+            <div id="allProducts" class="products-grid" style="display: none;"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 AuctionSphere - Windsurf Auction System. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Check authentication
+        if (!checkAuth('admin')) {
+            throw new Error('Unauthorized');
+        }
+
+        const currentUser = getCurrentUser();
+        document.getElementById('adminName').textContent = currentUser.name;
+
+        // Load statistics
+        function loadStatistics() {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const bids = JSON.parse(localStorage.getItem('bids') || '[]');
+
+            document.getElementById('pendingCount').textContent = products.filter(p => p.status === 'pending').length;
+            document.getElementById('approvedCount').textContent = products.filter(p => p.status === 'approved').length;
+            document.getElementById('userCount').textContent = users.length;
+            document.getElementById('totalBids').textContent = bids.length;
+        }
+
+        // Load and display products
+        function loadProducts() {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+
+            displayProducts(products.filter(p => p.status === 'pending'), 'pendingProducts', true);
+            displayProducts(products.filter(p => p.status === 'approved'), 'approvedProducts', false);
+            displayProducts(products, 'allProducts', false);
+            
+            loadStatistics();
+        }
+
+        // Display products in a container
+        function displayProducts(products, containerId, showActions) {
+            const container = document.getElementById(containerId);
+            
+            if (products.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 2rem;">No products found</p>';
+                return;
+            }
+
+            container.innerHTML = products.map(product => `
+                <div class="product-card fade-in">
+                    <div class="product-image">
+                        ${product.image ? `<img src="${product.image}" alt="${product.name}">` : '📦'}
+                    </div>
+                    <div class="product-details">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <div class="product-price">${formatCurrency(product.currentBid || product.startingBid)}</div>
+                        <span class="product-status status-${product.status}">${product.status.toUpperCase()}</span>
+                        <p style="font-size: 0.9rem; color: var(--text-light); margin-top: 0.5rem;">
+                            Seller: ${product.sellerName}<br>
+                            Uploaded: ${formatDateTime(product.createdAt)}
+                        </p>
+                        ${showActions ? `
+                            <div class="product-actions" style="margin-top: 1rem;">
+                                <button class="btn btn-success btn-small" onclick="approveProduct('${product.id}')">
+                                    ✓ Approve
+                                </button>
+                                <button class="btn btn-danger btn-small" onclick="showRejectDialog('${product.id}')">
+                                    ✗ Reject
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Tab switching
+        function showTab(tab) {
+            document.getElementById('pendingProducts').style.display = 'none';
+            document.getElementById('approvedProducts').style.display = 'none';
+            document.getElementById('allProducts').style.display = 'none';
+
+            document.getElementById('pendingTab').style.borderBottom = 'none';
+            document.getElementById('approvedTab').style.borderBottom = 'none';
+            document.getElementById('allTab').style.borderBottom = 'none';
+
+            if (tab === 'pending') {
+                document.getElementById('pendingProducts').style.display = 'grid';
+                document.getElementById('pendingTab').style.borderBottom = '3px solid var(--primary-color)';
+            } else if (tab === 'approved') {
+                document.getElementById('approvedProducts').style.display = 'grid';
+                document.getElementById('approvedTab').style.borderBottom = '3px solid var(--primary-color)';
+            } else {
+                document.getElementById('allProducts').style.display = 'grid';
+                document.getElementById('allTab').style.borderBottom = '3px solid var(--primary-color)';
+            }
+        }
+
+        // Approve product
+        function approveProduct(productId) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const product = products.find(p => p.id === productId);
+            
+            if (product) {
+                product.status = 'approved';
+                product.approvedAt = Date.now();
+                product.approvedBy = currentUser.id;
+                // Set auction end time
+                product.auctionEndTime = Date.now() + (product.auctionDuration * 60 * 60 * 1000);
+                
+                localStorage.setItem('products', JSON.stringify(products));
+                showAlert(`Product "${product.name}" approved successfully!`, 'success');
+                loadProducts();
+            }
+        }
+
+        // Show reject dialog
+        function showRejectDialog(productId) {
+            const reason = prompt('Enter rejection reason (optional):');
+            if (reason !== null) {
+                rejectProduct(productId, reason);
+            }
+        }
+
+        // Reject product
+        function rejectProduct(productId, reason) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const product = products.find(p => p.id === productId);
+            
+            if (product) {
+                product.status = 'rejected';
+                product.rejectedAt = Date.now();
+                product.rejectedBy = currentUser.id;
+                product.rejectionReason = reason || 'No reason provided';
+                
+                localStorage.setItem('products', JSON.stringify(products));
+                showAlert(`Product "${product.name}" rejected.`, 'warning');
+                loadProducts();
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').onclick = logout;
+
+        // Initial load
+        loadProducts();
+        updateNavigation();
+    </script>
+</body>
+</html>

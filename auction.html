@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Auctions - AuctionSphere</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🌊 AuctionSphere</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="auction.html" class="active">Auctions</a></li>
+                <li><a href="login.html" id="authLink">Login</a></li>
+                <li><a href="#" id="dashboardLink" style="display: none;">Dashboard</a></li>
+                <li><a href="#" id="logoutBtn" style="display: none;">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="dashboard">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Live Auctions</h2>
+            
+            <div id="noAuctions" style="text-align: center; padding: 3rem; display: none;">
+                <h3 style="color: var(--text-light);">No active auctions at the moment</h3>
+                <p style="color: var(--text-light); margin-top: 1rem;">
+                    Check back later for exciting windsurf equipment deals!
+                </p>
+            </div>
+
+            <div id="auctionsGrid" class="products-grid"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 AuctionSphere - Windsurf Auction System. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let currentUser = getCurrentUser();
+        let timers = {};
+
+        // Load and display auctions
+        function loadAuctions() {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const activeAuctions = products.filter(p => p.status === 'approved');
+
+            if (activeAuctions.length === 0) {
+                document.getElementById('noAuctions').style.display = 'block';
+                document.getElementById('auctionsGrid').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('noAuctions').style.display = 'none';
+            displayAuctions(activeAuctions);
+        }
+
+        // Display auctions
+        function displayAuctions(auctions) {
+            const container = document.getElementById('auctionsGrid');
+            const bids = JSON.parse(localStorage.getItem('bids') || '[]');
+            
+            container.innerHTML = auctions.map(auction => {
+                const auctionBids = bids.filter(b => b.productId === auction.id)
+                    .sort((a, b) => b.timestamp - a.timestamp);
+                
+                return `
+                    <div class="product-card fade-in" id="auction-${auction.id}">
+                        <div class="product-image">
+                            ${auction.image ? `<img src="${auction.image}" alt="${auction.name}">` : '📦'}
+                        </div>
+                        <div class="product-details">
+                            <h3>${auction.name}</h3>
+                            <p>${auction.description}</p>
+                            
+                            <div class="auction-timer" id="timer-${auction.id}">
+                                Loading timer...
+                            </div>
+                            
+                            <div class="product-price">
+                                Current Bid: ${formatCurrency(auction.currentBid)}
+                            </div>
+                            
+                            <p style="font-size: 0.9rem; color: var(--text-light);">
+                                Starting Bid: ${formatCurrency(auction.startingBid)}<br>
+                                Seller: ${auction.sellerName}
+                            </p>
+                            
+                            ${currentUser && currentUser.role === 'buyer' ? `
+                                <div class="bid-section">
+                                    <div class="bid-input-group">
+                                        <input 
+                                            type="number" 
+                                            id="bid-${auction.id}" 
+                                            placeholder="Enter your bid"
+                                            min="${auction.currentBid + 1}"
+                                            step="1"
+                                        >
+                                        <button 
+                                            class="btn btn-primary btn-small" 
+                                            onclick="placeBid('${auction.id}')"
+                                        >
+                                            Place Bid
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : currentUser ? '' : `
+                                <div style="text-align: center; margin-top: 1rem;">
+                                    <a href="login.html" class="btn btn-primary btn-small">
+                                        Login to Bid
+                                    </a>
+                                </div>
+                            `}
+                            
+                            <div class="bid-history">
+                                <h4>Recent Bids (${auctionBids.length})</h4>
+                                <div id="bid-list-${auction.id}">
+                                    ${auctionBids.slice(0, 5).map(bid => `
+                                        <div class="bid-item">
+                                            <span class="bid-user">${bid.buyerName}</span>
+                                            <span class="bid-amount">${formatCurrency(bid.amount)}</span>
+                                        </div>
+                                    `).join('') || '<p style="color: var(--text-light); font-size: 0.9rem;">No bids yet</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Start timers for all auctions
+            auctions.forEach(auction => {
+                startTimer(auction.id, auction.auctionEndTime);
+            });
+        }
+
+        // Start countdown timer
+        function startTimer(auctionId, endTime) {
+            // Clear existing timer
+            if (timers[auctionId]) {
+                clearInterval(timers[auctionId]);
+            }
+
+            function updateTimer() {
+                const now = Date.now();
+                const remaining = endTime - now;
+
+                const timerElement = document.getElementById(`timer-${auctionId}`);
+                if (!timerElement) return;
+
+                if (remaining <= 0) {
+                    timerElement.textContent = '⏰ Auction Ended';
+                    timerElement.style.background = 'linear-gradient(135deg, #6b7280, #374151)';
+                    clearInterval(timers[auctionId]);
+                    checkWinner(auctionId);
+                    return;
+                }
+
+                const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+                let timerText = '⏱️ ';
+                if (days > 0) timerText += `${days}d `;
+                if (hours > 0 || days > 0) timerText += `${hours}h `;
+                timerText += `${minutes}m ${seconds}s`;
+
+                timerElement.textContent = timerText;
+            }
+
+            updateTimer();
+            timers[auctionId] = setInterval(updateTimer, 1000);
+        }
+
+        // Check if current user is winner
+        function checkWinner(auctionId) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const product = products.find(p => p.id === auctionId);
+            const bids = JSON.parse(localStorage.getItem('bids') || '[]');
+            const productBids = bids.filter(b => b.productId === auctionId);
+
+            // Mark auction as completed
+            if (product && product.status === 'approved') {
+                product.status = 'completed';
+                product.completedAt = Date.now();
+                
+                if (productBids.length > 0) {
+                    const highestBid = productBids.sort((a, b) => b.amount - a.amount)[0];
+                    product.winnerId = highestBid.buyerId;
+                    product.winnerName = highestBid.buyerName;
+                    product.finalBid = highestBid.amount;
+                } else {
+                    product.winnerId = null;
+                    product.winnerName = 'No bids';
+                }
+                
+                localStorage.setItem('products', JSON.stringify(products));
+                
+                // If current user is the winner, redirect to payment
+                if (currentUser && currentUser.role === 'buyer' && productBids.length > 0) {
+                    const highestBid = productBids.sort((a, b) => b.amount - a.amount)[0];
+                    
+                    if (highestBid.buyerId === currentUser.id) {
+                        showAlert(`Congratulations! You won the auction for "${product.name}"!`, 'success');
+                        setTimeout(() => {
+                            window.location.href = `payment.html?product=${auctionId}`;
+                        }, 2000);
+                    }
+                }
+            }
+        }
+
+        // Place bid
+        function placeBid(auctionId) {
+            if (!currentUser || currentUser.role !== 'buyer') {
+                showAlert('Please login as a buyer to place bids', 'warning');
+                return;
+            }
+
+            const bidInput = document.getElementById(`bid-${auctionId}`);
+            const bidAmount = parseFloat(bidInput.value);
+
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const product = products.find(p => p.id === auctionId);
+
+            if (!product) {
+                showAlert('Product not found', 'danger');
+                return;
+            }
+
+            if (!bidAmount || bidAmount <= product.currentBid) {
+                showAlert(`Bid must be higher than current bid of ${formatCurrency(product.currentBid)}`, 'danger');
+                return;
+            }
+
+            // Create bid
+            const newBid = {
+                id: generateId(),
+                productId: auctionId,
+                buyerId: currentUser.id,
+                buyerName: currentUser.name,
+                amount: bidAmount,
+                timestamp: Date.now()
+            };
+
+            // Save bid
+            const bids = JSON.parse(localStorage.getItem('bids') || '[]');
+            bids.push(newBid);
+            localStorage.setItem('bids', JSON.stringify(bids));
+
+            // Update product current bid
+            product.currentBid = bidAmount;
+            localStorage.setItem('products', JSON.stringify(products));
+
+            showAlert('Bid placed successfully!', 'success');
+            bidInput.value = '';
+            
+            // Reload auctions to show updated bid
+            loadAuctions();
+        }
+
+        // Listen for storage changes (for real-time updates across tabs)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'products' || e.key === 'bids') {
+                loadAuctions();
+            }
+        });
+
+        // Update navigation
+        updateNavigation();
+
+        // Initial load
+        loadAuctions();
+
+        // Refresh auctions every 5 seconds to check for updates
+        setInterval(function() {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const activeAuctions = products.filter(p => p.status === 'approved');
+            
+            // Update current bids and bid displays without full re-render
+            activeAuctions.forEach(auction => {
+                updateAuctionDisplay(auction.id);
+            });
+        }, 5000);
+        
+        // Helper to update individual auction displays
+        function updateAuctionDisplay(auctionId) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const product = products.find(p => p.id === auctionId);
+            if (!product) return;
+            
+            const priceElement = document.querySelector(`#auction-${auctionId} .product-price`);
+            if (priceElement) {
+                priceElement.innerHTML = `Current Bid: ${formatCurrency(product.currentBid)}`;
+            }
+            
+            const bids = JSON.parse(localStorage.getItem('bids') || '[]');
+            const auctionBids = bids.filter(b => b.productId === auctionId)
+                .sort((a, b) => b.timestamp - a.timestamp);
+            
+            const bidListElement = document.getElementById(`bid-list-${auctionId}`);
+            if (bidListElement) {
+                bidListElement.innerHTML = auctionBids.slice(0, 5).map(bid => `
+                    <div class="bid-item">
+                        <span class="bid-user">${bid.buyerName}</span>
+                        <span class="bid-amount">${formatCurrency(bid.amount)}</span>
+                    </div>
+                `).join('') || '<p style="color: var(--text-light); font-size: 0.9rem;">No bids yet</p>';
+            }
+            
+            const bidHistoryTitle = document.querySelector(`#auction-${auctionId} .bid-history h4`);
+            if (bidHistoryTitle) {
+                bidHistoryTitle.textContent = `Recent Bids (${auctionBids.length})`;
+            }
+        }
+    </script>
+</body>
+</html>

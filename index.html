@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuctionSphere - Windsurf Auction System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 
+    ========================================
+    AUCTIONSPHERE - WINDSURF AUCTION SYSTEM
+    ========================================
+    
+    PROJECT DESCRIPTION:
+    A complete frontend-only auction platform built with vanilla HTML, CSS, and JavaScript.
+    No frameworks, no backend, no JSON files - everything runs in the browser using localStorage.
+    
+    FEATURES:
+    ✓ Role-Based Authentication: Admin, Seller, and Buyer roles with separate dashboards
+    ✓ Smart Validation: Email format, password strength (8+ chars, letters & numbers), bank details, UPI ID
+    ✓ Seller Dashboard: Upload products with images, track approval status
+    ✓ Admin Dashboard: Approve or reject seller products
+    ✓ Live Auctions: Real-time bidding with countdown timers and bid history
+    ✓ Payment Simulation: Mock payment flow with UPI and bank details
+    ✓ Responsive Design: Modern, clean UI that works on all devices
+    ✓ Smooth Navigation: Seamless transitions between pages
+    ✓ LocalStorage Persistence: All data stored in browser memory
+    
+    PAGES:
+    - index.html: Home page with project overview
+    - login.html: Registration and login with role selection
+    - seller.html: Seller dashboard for product management
+    - admin.html: Admin dashboard for product approval
+    - auction.html: Live auction page with bidding
+    - payment.html: Payment simulation and confirmation
+    
+    TECH STACK:
+    - Pure HTML5
+    - CSS3 (Flexbox, Grid, Animations)
+    - Vanilla JavaScript (ES6+)
+    - LocalStorage API
+    
+    HOW TO USE:
+    1. Start by registering a new account (choose your role)
+    2. Sellers can upload products for auction
+    3. Admin approves products to make them live
+    4. Buyers can bid on approved products
+    5. Winners complete simulated payment
+    
+    ========================================
+    -->
+    
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🌊 AuctionSphere</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="auction.html">Auctions</a></li>
+                <li><a href="login.html" id="authLink">Login</a></li>
+                <li><a href="#" id="dashboardLink" style="display: none;">Dashboard</a></li>
+                <li><a href="#" id="logoutBtn" style="display: none;">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <div class="hero-content">
+                <h2>Welcome to AuctionSphere</h2>
+                <p class="tagline">The Premier Windsurf Auction Platform</p>
+                <p class="description">
+                    Experience the future of online auctions. Buy, sell, and trade premium windsurf equipment 
+                    in a secure, transparent, and exciting marketplace.
+                </p>
+                <div class="cta-buttons">
+                    <a href="login.html" class="btn btn-primary">Get Started</a>
+                    <a href="auction.html" class="btn btn-secondary">View Auctions</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="features">
+            <h3>Why Choose AuctionSphere?</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🏄</div>
+                    <h4>For Buyers</h4>
+                    <p>Bid on premium windsurf equipment with real-time updates and transparent pricing.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💼</div>
+                    <h4>For Sellers</h4>
+                    <p>List your products easily and reach a dedicated community of windsurf enthusiasts.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h4>Secure & Trusted</h4>
+                    <p>Admin-approved listings ensure quality and authenticity for all transactions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⏱️</div>
+                    <h4>Live Auctions</h4>
+                    <p>Experience the thrill of live bidding with countdown timers and instant updates.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works">
+            <h3>How It Works</h3>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h4>Register</h4>
+                    <p>Choose your role: Buyer, Seller, or Admin</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h4>Browse or List</h4>
+                    <p>Explore auctions or upload your products</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h4>Bid & Win</h4>
+                    <p>Place bids and win amazing deals</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h4>Complete Payment</h4>
+                    <p>Secure and simple payment process</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 AuctionSphere - Windsurf Auction System. All rights reserved.</p>
+        <p>Built with HTML, CSS, and JavaScript</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        updateNavigation();
+    </script>
+</body>
+</html>

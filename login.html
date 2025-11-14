@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Register - AuctionSphere</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🌊 AuctionSphere</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="auction.html">Auctions</a></li>
+                <li><a href="login.html" class="active">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="form-container">
+            <h2 id="formTitle">Login to AuctionSphere</h2>
+            
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <button class="btn btn-small" id="toggleBtn" onclick="toggleForm()">
+                    Don't have an account? Register
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" style="display: block;">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
+                    <span class="error-message" id="loginEmailError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                    <span class="error-message" id="loginPasswordError"></span>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+
+            <!-- Registration Form -->
+            <form id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label for="regRole">Select Role</label>
+                    <select id="regRole" required onchange="updateRoleFields()">
+                        <option value="">Choose your role...</option>
+                        <option value="buyer">Buyer</option>
+                        <option value="seller">Seller</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="regName">Full Name</label>
+                    <input type="text" id="regName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" required>
+                    <span class="error-message" id="regEmailError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" required>
+                    <span class="error-message" id="regPasswordError"></span>
+                    <small style="color: #6b7280;">Must be 8+ characters with letters and numbers</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="regConfirmPassword">Confirm Password</label>
+                    <input type="password" id="regConfirmPassword" required>
+                    <span class="error-message" id="regConfirmPasswordError"></span>
+                </div>
+
+                <!-- Buyer-specific fields -->
+                <div id="buyerFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="bankAccount">Bank Account Number</label>
+                        <input type="text" id="bankAccount">
+                        <span class="error-message" id="bankAccountError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="ifscCode">IFSC Code</label>
+                        <input type="text" id="ifscCode">
+                        <span class="error-message" id="ifscCodeError"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="bankName">Bank Name</label>
+                        <input type="text" id="bankName">
+                    </div>
+                </div>
+
+                <!-- Seller-specific fields -->
+                <div id="sellerFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="upiId">UPI ID</label>
+                        <input type="text" id="upiId" placeholder="yourname@bank">
+                        <span class="error-message" id="upiIdError"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 6px;">
+                <small><strong>Demo Admin Account:</strong><br>
+                Email: admin@auctionsphere.com<br>
+                Password: Admin123</small>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 AuctionSphere - Windsurf Auction System. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Toggle between login and register forms
+        function toggleForm() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const formTitle = document.getElementById('formTitle');
+            const toggleBtn = document.getElementById('toggleBtn');
+
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                formTitle.textContent = 'Login to AuctionSphere';
+                toggleBtn.textContent = "Don't have an account? Register";
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                formTitle.textContent = 'Register for AuctionSphere';
+                toggleBtn.textContent = "Already have an account? Login";
+            }
+        }
+
+        // Update role-specific fields
+        function updateRoleFields() {
+            const role = document.getElementById('regRole').value;
+            const buyerFields = document.getElementById('buyerFields');
+            const sellerFields = document.getElementById('sellerFields');
+
+            buyerFields.style.display = role === 'buyer' ? 'block' : 'none';
+            sellerFields.style.display = role === 'seller' ? 'block' : 'none';
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            // Validate email
+            if (!isValidEmail(email)) {
+                const error = document.getElementById('loginEmailError');
+                error.textContent = 'Please enter a valid email address';
+                error.style.display = 'block';
+                return;
+            }
+
+            // Get users from localStorage
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                localStorage.setItem('currentUser', user.email);
+                showAlert('Login successful! Redirecting...', 'success');
+                
+                setTimeout(() => {
+                    if (user.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else if (user.role === 'seller') {
+                        window.location.href = 'seller.html';
+                    } else {
+                        window.location.href = 'auction.html';
+                    }
+                }, 1000);
+            } else {
+                showAlert('Invalid email or password', 'danger');
+            }
+        });
+
+        // Registration form submission
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let isValid = true;
+            
+            // Get form values
+            const role = document.getElementById('regRole').value;
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            // Clear previous errors
+            document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
+            // Validate email
+            if (!isValidEmail(email)) {
+                const error = document.getElementById('regEmailError');
+                error.textContent = 'Please enter a valid email address';
+                error.style.display = 'block';
+                isValid = false;
+            }
+
+            // Validate password
+            if (!isValidPassword(password)) {
+                const error = document.getElementById('regPasswordError');
+                error.textContent = 'Password must be 8+ characters with letters and numbers';
+                error.style.display = 'block';
+                isValid = false;
+            }
+
+            // Check password match
+            if (password !== confirmPassword) {
+                const error = document.getElementById('regConfirmPasswordError');
+                error.textContent = 'Passwords do not match';
+                error.style.display = 'block';
+                isValid = false;
+            }
+
+            // Role-specific validation
+            if (role === 'buyer') {
+                const bankAccount = document.getElementById('bankAccount').value.trim();
+                const ifscCode = document.getElementById('ifscCode').value.trim();
+
+                if (!isValidBankAccount(bankAccount)) {
+                    const error = document.getElementById('bankAccountError');
+                    error.textContent = 'Please enter a valid bank account number (9-18 digits)';
+                    error.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (!isValidIFSC(ifscCode)) {
+                    const error = document.getElementById('ifscCodeError');
+                    error.textContent = 'Please enter a valid IFSC code';
+                    error.style.display = 'block';
+                    isValid = false;
+                }
+            } else if (role === 'seller') {
+                const upiId = document.getElementById('upiId').value.trim();
+
+                if (!isValidUPI(upiId)) {
+                    const error = document.getElementById('upiIdError');
+                    error.textContent = 'Please enter a valid UPI ID (e.g., yourname@bank)';
+                    error.style.display = 'block';
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) return;
+
+            // Check if email already exists
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            if (users.some(u => u.email === email)) {
+                showAlert('Email already registered. Please login.', 'danger');
+                return;
+            }
+
+            // Create user object
+            const newUser = {
+                id: generateId(),
+                email,
+                password,
+                role,
+                name,
+                createdAt: Date.now()
+            };
+
+            // Add role-specific data
+            if (role === 'buyer') {
+                newUser.bankAccount = document.getElementById('bankAccount').value.trim();
+                newUser.ifscCode = document.getElementById('ifscCode').value.trim();
+                newUser.bankName = document.getElementById('bankName').value.trim();
+            } else if (role === 'seller') {
+                newUser.upiId = document.getElementById('upiId').value.trim();
+            }
+
+            // Save user
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('currentUser', email);
+
+            showAlert('Registration successful! Redirecting...', 'success');
+            
+            setTimeout(() => {
+                if (role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else if (role === 'seller') {
+                    window.location.href = 'seller.html';
+                } else {
+                    window.location.href = 'auction.html';
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
